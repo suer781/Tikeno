@@ -4,7 +4,10 @@
 
 #include "core/engine.h"
 
+#include <errno.h>
+#include <fcntl.h>
 #include <string.h>
+#include <sys/eventfd.h>
 #include <unistd.h>
 
 #include "core/constants.h"
@@ -97,8 +100,29 @@ int TikenoEngine::attach_fds(int cmd_fd, int out_fd) {
     pthread_mutex_lock(&mu_);
     cmd_fd_ = cmd_fd;
     out_fd_ = out_fd;
+    // Java 公开 API（android.system.Os）未暴露 eventfd，Java 传入的是
+    // Os.pipe() 的单端 fd。两点适配（T03 JNI 桥补全）：
+    //   1) 传入 fd 一律设 O_NONBLOCK——scheduler 的排空循环
+    //      `while(read(fd,&u64,8)==8){}` 依赖非阻塞语义退出；
+    //   2) 引擎内部自唤醒改用自建 eventfd（可读可写、非阻塞），
+    //      因为 pipe 单端无法同时满足"引擎写 + 调度线程读"。
+    if (cmd_fd >= 0) {
+        const int fl = fcntl(cmd_fd, F_GETFL, 0);
+        if (fl >= 0) (void)fcntl(cmd_fd, F_SETFL, fl | O_NONBLOCK);
+    }
     if (out_fd >= 0) {
+        const int fl = fcntl(out_fd, F_GETFL, 0);
+        if (fl >= 0) (void)fcntl(out_fd, F_SETFL, fl | O_NONBLOCK);
         out_ring_.set_out_fd(out_fd);
+    }
+    if (wake_fd_ >= 0) {
+        close(wake_fd_);
+        wake_fd_ = -1;
+    }
+    wake_fd_ = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+    if (wake_fd_ < 0) {
+        TK_LOGE("attach_fds: wake eventfd 创建失败 errno=%d", errno);
+        wake_fd_ = -1;
     }
     pthread_mutex_unlock(&mu_);
     return static_cast<int>(TkError::kOk);
@@ -287,9 +311,9 @@ int TikenoEngine::stop_locked() {
     memset(&cmd, 0, sizeof(cmd));
     cmd.cmd = static_cast<int32_t>(TkCommandId::kStop);
     cmdq_.try_push(cmd);
-    if (cmd_fd_ >= 0) {
+    if (wake_fd_ >= 0) {
         uint64_t one = 1;
-        ssize_t n = write(cmd_fd_, &one, sizeof(one));
+        ssize_t n = write(wake_fd_, &one, sizeof(one));
         (void)n;
     }
     // 带超时回收线程（架构 §7.3 规则 4：超时记日志继续，不卡死控制面）
@@ -311,9 +335,9 @@ int TikenoEngine::post_command(int32_t cmd, int64_t arg0, int64_t arg1) {
     if (!cmdq_.try_push(c)) {
         return static_cast<int>(TkError::kWarnCmdDropped);  // 队列满已覆盖（§10.5）
     }
-    if (cmd_fd_ >= 0) {
+    if (wake_fd_ >= 0) {
         uint64_t one = 1;
-        ssize_t n = write(cmd_fd_, &one, sizeof(one));
+        ssize_t n = write(wake_fd_, &one, sizeof(one));
         (void)n;
     }
     return static_cast<int>(TkError::kOk);
@@ -375,8 +399,10 @@ void TikenoEngine::run_loop() {
     params.tier = static_cast<TkInjectionTier>(cur_tier);
     params.max_duration_ns = 0;
 
+    // 传给调度器的唤醒 fd：自唤醒 eventfd（引擎内部命令）；
+    // Java 唤醒（cmd_fd_，pipe 读端）作为附加监听传入
     const int rc = scheduler_.run(injector_, &player_, &stats_, &state_,
-                                  cmd_fd_, stats_buf_, params);
+                                  wake_fd_, cmd_fd_, stats_buf_, params);
     if (rc != static_cast<int>(TkError::kOk)) {
         TK_LOGE("run_loop: 调度循环异常退出 rc=%d", rc);
         state_.store(static_cast<int>(TkEngineState::kError), std::memory_order_relaxed);

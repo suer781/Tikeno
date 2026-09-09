@@ -47,7 +47,8 @@ class Scheduler {
     //   player        ：已 load 的序列播放器
     //   stats         ：统计器（写快照到 stats_buf）
     //   state         ：引擎状态原子（共享内存快照里的 state 字段也读它）
-    //   cmd_fd        ：cmdEfd（命令唤醒信号）
+    //   cmd_fd        ：自唤醒 eventfd（引擎内部命令；可读可写、非阻塞）
+    //   java_wake_fd  ：Java→C++ 单向唤醒（pipe 读端，非阻塞；无则传 -1）
     //   stats_buf     ：共享统计缓冲（可为 nullptr）
     // 返回 TK_OK（正常完成/停止）或错误码。
     int run(IInjector* injector,
@@ -55,6 +56,7 @@ class Scheduler {
             Stats* stats,
             std::atomic<int>* state,
             int cmd_fd,
+            int java_wake_fd,
             void* stats_buf,
             const Params& params);
 
@@ -68,6 +70,9 @@ class Scheduler {
 
     // 排空 cmdEfd 信号字节（命令本体经 CommandQueue）
     void drain_cmd_signal();
+
+    // 排空 Java 唤醒信号（pipe 读端；信号本体无语义，仅唤醒）
+    void drain_java_wake();
 
     // 非阻塞排空 CommandQueue 并执行命令；返回是否收到 STOP
     bool process_commands(std::atomic<int>* state, Params* params);
@@ -88,7 +93,8 @@ class Scheduler {
     EpollLoop& epoll_;
     CommandQueue& cmdq_;
 
-    int cmd_fd_ = -1;  // cmdEfd（run 时缓存）
+    int cmd_fd_ = -1;        // 自唤醒 eventfd（引擎内部命令）
+    int java_wake_fd_ = -1;  // Java→C++ 单向唤醒（pipe 读端；-1=无）
 
     // 运行期可变参数（SET_PARAM 更新副本）
     int64_t spin_threshold_ns_ = kDefaultSpinThresholdNs;

@@ -1,6 +1,5 @@
 package com.tikeno.autoclicker.engine;
 
-import android.os.Build;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.system.OsConstants;
@@ -13,86 +12,105 @@ import java.nio.ByteOrder;
 import com.tikeno.autoclicker.util.Logx;
 
 /**
- * EventFdBridge — eventfd 包装（架构 §2.4.4 #74）。
+ * EventFdBridge — 跨线程唤醒通道包装（架构 §2.4.4 #74）。
  *
- * 用途：Java 侧创建 cmdEfd / outEfd 两个 eventfd 并以 FileDescriptor
- * 交给 C++（nativeAttachFds）；实现全链路跨线程唤醒：
- *   - cmdEfd：Java 写（控制命令到达）→ C++ epoll_wait 唤醒；
- *   - outEfd：C++ 写（outRing 有新步）→ Java MessageQueue fd 监听唤醒。
+ * 用途：Java 侧创建 cmdFd / outFd 两个唤醒管道并以 FileDescriptor 交给
+ * C++（nativeAttachFds）；实现全链路跨线程唤醒：
+ *   - cmdFd：Java 写（控制命令到达）→ C++ epoll_wait 唤醒；
+ *   - outFd：C++ 写（outRing 有新步）→ Java MessageQueue fd 监听唤醒。
  *
- * 全部使用 android.system.Os 公开 API（API 23+，minSdk 24 ✓）；
- * 默认 EFD_NONBLOCK：signal 不阻塞（计数饱和时容忍失败，C++ 侧仍能轮询到）。
+ * 【实现说明】理想后端是 Linux eventfd，但 public Os API 未暴露
+ * （OsConstants.EFD_* / Os.eventfd 在 compileSdk 35 编译面上不存在），
+ * 故回退到 Os.pipe()（pipe2）：fd 语义对 C++ epoll/Java fd 监听完全等价。
+ * 协议约定 8 字节对齐：signal 写 8B 计数（eventfd 计数语义），
+ * drain 读 8B —— 与 C++ 侧 read(fd,&u64,8) 的 eventfd 用法兼容。
+ * 全部使用 android.system.Os 公开 API（API 21+）。
  */
 public final class EventFdBridge implements Closeable {
 
     private static final String TAG = "Tikeno/Efd";
 
-    private FileDescriptor fd;
+    private FileDescriptor localFd;   // 本端 fd（cmd=写端 signal / out=读端 drain+监听）
+    private FileDescriptor peerFd;    // 对端 fd（交 nativeAttachFds；C++ 读 cmd / 写 out）
     private final ByteBuffer ioBuf = ByteBuffer.allocateDirect(8)
             .order(ByteOrder.LITTLE_ENDIAN);
 
-    private EventFdBridge(FileDescriptor fd) {
-        this.fd = fd;
+    private EventFdBridge(FileDescriptor localFd, FileDescriptor peerFd) {
+        this.localFd = localFd;
+        this.peerFd = peerFd;
     }
 
-    /** 创建非阻塞 eventfd（初始计数 0）；失败抛 ErrnoException */
-    public static EventFdBridge create() throws ErrnoException {
-        // EFD_CLOEXEC | EFD_NONBLOCK（与 Linux 语义一致，OsConstants API 23+）
-        final int flags = OsConstants.EFD_CLOEXEC | OsConstants.EFD_NONBLOCK;
-        FileDescriptor f = Os.eventfd(0, flags);
-        return new EventFdBridge(f);
+    /**
+     * 创建唤醒通道。
+     *  - iAmWriter=true（cmdFd）：本端=pipe 写端（Java signal），对端=读端（交 C++）；
+     *  - iAmWriter=false（outFd）：本端=pipe 读端（Java drain/监听），对端=写端（交 C++）。
+     */
+    public static EventFdBridge create(boolean iAmWriter) throws ErrnoException {
+        final FileDescriptor[] pipe = Os.pipe();
+        return new EventFdBridge(
+                iAmWriter ? pipe[1] : pipe[0],
+                iAmWriter ? pipe[0] : pipe[1]);
     }
 
-    /** 底层 fd（交给 nativeAttachFds / MessageQueue fd 监听） */
+    /** 交给 nativeAttachFds 的对端 FileDescriptor */
     public FileDescriptor fd() {
-        return fd;
+        return peerFd;
     }
 
-    /** 写入计数 1（唤醒对端）；NONBLOCK 下计数饱和会抛 EAGAIN，容忍之 */
+    /** 本端 FileDescriptor（MessageQueue fd 监听用；仅读端有意义） */
+    public FileDescriptor localFd() {
+        return localFd;
+    }
+
+    /** 写端角色：唤醒 C++（每次写 8 字节计数 1，与 eventfd 写 u64 语义对齐） */
     public void signal() {
         try {
             ioBuf.clear();
             ioBuf.putLong(1L);
             ioBuf.flip();
-            Os.write(fd, ioBuf);
-        } catch (ErrnoException e) {
-            if (e.errno != OsConstants.EAGAIN) {
-                Logx.e(TAG, "eventfd signal 失败 errno=" + e.errno);
-            }
-            // EAGAIN：对端尚未消费，计数已饱和 —— 对端必然已被唤醒，无需处理
+            Os.write(localFd, ioBuf);
         } catch (Exception e) {
-            Logx.e(TAG, "eventfd signal 异常", e);
+            Logx.e(TAG, "唤醒通道 signal 失败", e);
         }
     }
 
-    /** 消费计数（fd 监听回调内调用，清零以便下次唤醒） */
+    /** 读端角色：消费唤醒（fd 监听回调内调用；每次读 8B，与写对齐） */
     public void drain() {
         try {
             ioBuf.clear();
-            Os.read(fd, ioBuf);   // NONBLOCK：无数据抛 EAGAIN
+            Os.read(localFd, ioBuf);
         } catch (ErrnoException e) {
             if (e.errno != OsConstants.EAGAIN) {
-                Logx.e(TAG, "eventfd drain 失败 errno=" + e.errno);
+                Logx.e(TAG, "唤醒通道 drain 失败 errno=" + e.errno);
             }
         } catch (Exception e) {
-            Logx.e(TAG, "eventfd drain 异常", e);
+            Logx.e(TAG, "唤醒通道 drain 异常", e);
         }
     }
 
     @Override
     public void close() {
-        if (fd != null) {
-            try {
-                Os.close(fd);
-            } catch (ErrnoException e) {
-                Logx.w(TAG, "eventfd close 失败 errno=" + e.errno);
+        // 仅在 nativeDestroy 之后调用（C++ 持有的对端已不再使用）
+        try {
+            if (localFd != null) {
+                Os.close(localFd);
             }
-            fd = null;
+        } catch (ErrnoException e) {
+            Logx.w(TAG, "本端 close 失败 errno=" + e.errno);
         }
+        try {
+            if (peerFd != null) {
+                Os.close(peerFd);
+            }
+        } catch (ErrnoException e) {
+            Logx.w(TAG, "对端 close 失败 errno=" + e.errno);
+        }
+        localFd = null;
+        peerFd = null;
     }
 
-    /** 调试用：API 等级标注（编译期常量） */
-    public static int minApiRequired() {
-        return Build.VERSION_CODES.M;
+    /** 调试用：协议字节数 */
+    public static int protocolBytes() {
+        return 8;
     }
 }

@@ -1,6 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 应用文案（骨架轮次最小集；完整文案含合规免责声明随 T05 补齐，措辞按 PRD §2.5.4） -->
+    <!-- 应用文案（T03 服务层 + 悬浮窗；完整文案含合规免责声明随 T05 补齐，措辞按 PRD §2.5.4） -->
     <string name="app_name">Tikeno</string>
     <string name="main_subtitle">无障碍辅助与 UI 自动化测试工具</string>
+
+    <!-- —— 通知（NotificationHelper / 前台服务）—— -->
+    <string name="notif_channel_name">控制通知</string>
+    <string name="notif_channel_desc">显示点击任务的运行状态与控制按钮</string>
+    <string name="notif_title">Tikeno 任务控制</string>
+    <string name="notif_state_idle">待命 · 未在运行</string>
+    <string name="action_play">播放</string>
+    <string name="action_pause">暂停</string>
+    <string name="action_stop">停止</string>
+
+    <!-- —— QS 磁贴（QuickTileService）—— -->
+    <string name="tile_label">Tikeno</string>
+    <string name="tile_state_running">运行中</string>
+    <string name="tile_state_idle">已停止</string>
+
+    <!-- —— 无障碍服务 —— -->
+    <string name="a11y_service_label">Tikeno 自动连点</string>
+    <string name="a11y_service_desc">用于自动化点击测试：执行您配置的点击/滑动手势。服务不会读取屏幕内容，除您主动开启取点功能外。</string>
+
+    <!-- —— 悬浮窗（FloatWindowManager / FloatPanelView / FloatBallView）—— -->
+    <string name="float_ball_desc">Tikeno 悬浮控制球</string>
+    <string name="float_status_idle">待命</string>
+    <string name="float_status_running">运行中</string>
+    <string name="float_status_paused">已暂停</string>
+    <string name="float_status_error">错误</string>
+    <string name="float_progress_zero">已执行 0 步</string>
+    <string name="float_progress_fmt">已执行 %1$d 步</string>
+    <string name="float_btn_play">▶ 开始</string>
+    <string name="float_btn_pause">⏸ 暂停</string>
+    <string name="float_btn_stop">⏹ 停止</string>
+    <string name="float_btn_interval_down">−</string>
+    <string name="float_btn_interval_up">+</string>
 </resources>

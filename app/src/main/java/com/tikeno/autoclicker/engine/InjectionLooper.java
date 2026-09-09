@@ -3,7 +3,6 @@ package com.tikeno.autoclicker.engine;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.MessageQueue;
-import android.system.ErrnoException;
 
 import com.tikeno.autoclicker.util.Logx;
 import com.tikeno.autoclicker.util.Threadx;
@@ -25,10 +24,10 @@ public final class InjectionLooper {
     private final OutputRing ring;
     private final EventFdBridge outEfd;
     private final InjectionDispatcher dispatcher;
-    private final InjectionEngine.InjectionTierHolder tierHolder = () -> 3;
 
     private HandlerThread thread;
     private Handler handler;
+    private MessageQueue.OnFileDescriptorEventListener fdListener;
     private volatile boolean running;
 
     // —— 高频派发门控：dispatchGesture 会取消在途手势，必须等上次完成 ——
@@ -39,6 +38,13 @@ public final class InjectionLooper {
         this.ring = ring;
         this.outEfd = outEfd;
         this.dispatcher = dispatcher;
+        // 监听器在构造器中初始化（引用 final 字段需在其赋值之后）
+        this.fdListener = (fd, events) -> {
+            // 唤醒可读：消费信号并批量取步（非阻塞，必须快速返回）
+            outEfd.drain();
+            processSteps();
+            return MessageQueue.OnFileDescriptorEventListener.EVENT_INPUT;
+        };
     }
 
     /** 启动线程并注册 fd 监听（幂等） */
@@ -63,13 +69,12 @@ public final class InjectionLooper {
         if (handler != null) {
             handler.post(() -> {
                 try {
-                    LooperHolder.myQueue().removeOnFileDescriptorEventListener(fdListener);
+                    LooperHolder.myQueue()
+                            .removeOnFileDescriptorEventListener(outEfd.localFd());
                 } catch (Exception e) {
                     Logx.w(TAG, "fd 监听注销异常", e);
                 }
             });
-            handler.removeCallbacksAndMessages(null);
-            handler.post(() -> { /* 允许注销任务先执行 */ });
         }
         if (thread != null) {
             thread.quitSafely();
@@ -79,21 +84,14 @@ public final class InjectionLooper {
         Logx.i(TAG, "tikeno.inject 线程已停止");
     }
 
-    private final MessageQueue.OnFileDescriptorEventListener fdListener =
-            (fd, events) -> {
-                // eventfd 可读：消费计数并批量取步（非阻塞，必须快速返回）
-                outEfd.drain();
-                processSteps();
-                return MessageQueue.OnFileDescriptorEventListener.EVENT_INPUT;
-            };
-
     private void registerFdListener() {
         try {
+            // 监听 outFd 本端（pipe 读端；C++ 对端写入 8B 唤醒）
             LooperHolder.myQueue().addOnFileDescriptorEventListener(
-                    outEfd.fd(),
+                    outEfd.localFd(),
                     MessageQueue.OnFileDescriptorEventListener.EVENT_INPUT,
                     fdListener);
-        } catch (ErrnoException | IllegalStateException e) {
+        } catch (IllegalStateException | IllegalArgumentException e) {
             Logx.e(TAG, "fd 监听注册失败", e);
         }
     }

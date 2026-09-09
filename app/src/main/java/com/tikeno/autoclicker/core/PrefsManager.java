@@ -16,6 +16,9 @@ public final class PrefsManager {
     private static final String KEY_COMPLIANCE_ACK = "compliance_ack";
     private static final String KEY_LAST_CONFIG_ID = "last_config_id";
     private static final String KEY_FLOAT_ENABLED = "float_enabled";
+    private static final String KEY_FLOAT_BALL_X = "float_ball_x";
+    private static final String KEY_FLOAT_BALL_Y = "float_ball_y";
+    private static final String KEY_PAUSE_ON_SCREEN_OFF = "pause_on_screen_off";
 
     private final SharedPreferences prefs;
 
@@ -56,5 +59,27 @@ public final class PrefsManager {
 
     public void setFloatEnabled(boolean enabled) {
         prefs.edit().putBoolean(KEY_FLOAT_ENABLED, enabled).apply();
+    }
+
+    /** 悬浮球位置持久化（拖动松手落位后写入，架构 §2.5 #110） */
+    public int floatBallX() {
+        return prefs.getInt(KEY_FLOAT_BALL_X, 40);
+    }
+
+    public int floatBallY() {
+        return prefs.getInt(KEY_FLOAT_BALL_Y, 200);
+    }
+
+    public void setFloatBallPos(int x, int y) {
+        prefs.edit().putInt(KEY_FLOAT_BALL_X, x).putInt(KEY_FLOAT_BALL_Y, y).apply();
+    }
+
+    /** 熄屏自动暂停（默认开启；设置页 T04 接入开关） */
+    public boolean isPauseOnScreenOff() {
+        return prefs.getBoolean(KEY_PAUSE_ON_SCREEN_OFF, true);
+    }
+
+    public void setPauseOnScreenOff(boolean enabled) {
+        prefs.edit().putBoolean(KEY_PAUSE_ON_SCREEN_OFF, enabled).apply();
     }
 }

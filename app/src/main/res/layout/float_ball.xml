@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- float_ball.xml — 悬浮球窗口根布局（架构 §2.6）。
+     FloatBallView 自绘；拖动手势由 DragTouchHandler 注入。 -->
+<com.tikeno.autoclicker.floatwindow.FloatBallView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/float_ball"
+    android:layout_width="96dp"
+    android:layout_height="96dp"
+    android:contentDescription="@string/float_ball_desc" />

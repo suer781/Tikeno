@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- accessibility_service_config.xml — 无障碍服务配置（架构 §2.6 / T03 验收标准 3）。
+     canPerformGestures=true：L3 档 dispatchGesture 注入通道（必需）；
+     canRetrieveWindowContent=false：默认最小权限（合规），取点时经
+     setServiceInfo() 动态开启（ClickerAccessibilityService.setNodeContentEnabled）；
+     事件类型取最小集：本服务不消费无障碍事件，仅声明服务存在。 -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="false"
+    android:description="@string/a11y_service_desc"
+    android:notificationTimeout="100" />

@@ -49,6 +49,7 @@ int Scheduler::run(IInjector* injector,
                    Stats* stats,
                    std::atomic<int>* state,
                    int cmd_fd,
+                   int java_wake_fd,
                    void* stats_buf,
                    const Params& params) {
     if (injector == nullptr || player == nullptr || stats == nullptr || state == nullptr) {
@@ -61,13 +62,17 @@ int Scheduler::run(IInjector* injector,
     TK_NO_ALLOC_SCOPE();  // Debug 分配哨兵：作用域内任何 malloc 即 TK_LOGE
 
     cmd_fd_ = cmd_fd;
+    java_wake_fd_ = java_wake_fd;
     spin_threshold_ns_ = params.spin_threshold_ns;
     last_delay_ns_ = kDefaultSampleStepUs * 1000;  // 初始按默认步长门控自旋
 
-    // epoll 注册：timerFd（若 timerfd 后端）+ cmdEfd
+    // epoll 注册：自唤醒 eventfd + Java 唤醒 fd + timerFd（若 timerfd 后端）
     epoll_.create();
     if (cmd_fd >= 0) {
         epoll_.add_fd(cmd_fd, EPOLLIN);
+    }
+    if (java_wake_fd >= 0) {
+        epoll_.add_fd(java_wake_fd, EPOLLIN);
     }
     const bool use_timerfd = (params.backend == TkTimerBackend::kTimerFd) && timer_.is_timer_fd();
     if (use_timerfd) {
@@ -259,6 +264,8 @@ Scheduler::WaitResult Scheduler::wait_until_deadline(int64_t deadline_ns,
                     timer_.drain_expired();  // 到期：读出计数值解除可读态
                 } else if (ev[i].data.fd == cmd_fd_) {
                     drain_cmd_signal();
+                } else if (ev[i].data.fd == java_wake_fd_) {
+                    drain_java_wake();
                 }
             }
             // 回顶：若剩余已小则走自旋，否则继续 epoll
@@ -273,15 +280,24 @@ Scheduler::WaitResult Scheduler::wait_until_deadline(int64_t deadline_ns,
             struct timespec ts = ns_to_timespec(slice_end);
             clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, nullptr);
             drain_cmd_signal();
+            drain_java_wake();
         }
     }
 }
 
 void Scheduler::drain_cmd_signal() {
-    // 排空 cmdEfd 信号字节（命令本体经 CommandQueue 由 process_commands 处理）
+    // 排空自唤醒 eventfd 信号（命令本体经 CommandQueue 由 process_commands 处理）。
+    // fd 为非阻塞：排空后 read 返回 -1/EAGAIN，循环自然退出。
     if (cmd_fd_ < 0) return;
     uint64_t one = 0;
     while (read(cmd_fd_, &one, sizeof(one)) == sizeof(one)) {}
+}
+
+void Scheduler::drain_java_wake() {
+    // 排空 Java 唤醒信号（pipe 读端，非阻塞；信号本体无语义，仅唤醒）
+    if (java_wake_fd_ < 0) return;
+    uint64_t one = 0;
+    while (read(java_wake_fd_, &one, sizeof(one)) == sizeof(one)) {}
 }
 
 void Scheduler::spin_until(int64_t deadline_ns) {
@@ -366,6 +382,8 @@ void Scheduler::wait_paused(std::atomic<int>* state) {
         for (int i = 0; i < n; ++i) {
             if (ev[i].data.fd == cmd_fd_) {
                 drain_cmd_signal();
+            } else if (ev[i].data.fd == java_wake_fd_) {
+                drain_java_wake();
             } else if (ev[i].data.fd == timer_.fd()) {
                 timer_.drain_expired();
             }

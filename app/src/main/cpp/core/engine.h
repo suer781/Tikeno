@@ -110,8 +110,13 @@ class TikenoEngine {
     void* stats_buf_ = nullptr;
 
     // fd（Java 拥有；仅缓存 int）
+    // cmd_fd_/out_fd_：Java 侧 Os.pipe() 的对端（读端/写端），仅作单向 Java⇄C++
+    //   唤醒通道（Java 公开 API 无 eventfd，见 attach_fds 注释）。
+    // wake_fd_：C++ 自建自唤醒 eventfd（可读可写、非阻塞）——引擎内部命令
+    //   唤醒（post_command/stop → 调度线程）独占使用。
     int cmd_fd_ = -1;
     int out_fd_ = -1;
+    int wake_fd_ = -1;
 
     // 核心组件
     HighResTimer timer_;
