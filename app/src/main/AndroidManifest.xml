@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tikeno — AndroidManifest（本轮为骨架版：仅声明当前已存在的组件）。
+     权限与其余四大组件（无障碍服务 / 前台服务 / 磁贴 / 接收器 / Provider）
+     由 T03/T05 轮次增量补齐（架构 §2.2 #11 / §9.4）。 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:name=".TikenoApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Tikeno">
+
+        <!-- 主界面：骨架验证点（标题栏 Tikeno + native 版本串），后续轮次完整实现 -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

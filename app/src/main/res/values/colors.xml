@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 配色（骨架最小集；深/浅全套随 T04 扩展） -->
+    <color name="tikeno_primary">#1E88E5</color>
+    <color name="tikeno_on_primary">#FFFFFF</color>
+    <color name="tikeno_background">#FAFAFA</color>
+    <color name="tikeno_on_background">#212121</color>
+
+    <!-- 自适应图标背景 -->
+    <color name="ic_launcher_background">#1E88E5</color>
+
+    <!-- 状态色（悬浮球：灰=停止/绿=运行/黄=暂停，T04 使用） -->
+    <color name="state_idle">#9E9E9E</color>
+    <color name="state_running">#43A047</color>
+    <color name="state_paused">#FBC02D</color>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 应用文案（骨架轮次最小集；完整文案含合规免责声明随 T05 补齐，措辞按 PRD §2.5.4） -->
+    <string name="app_name">Tikeno</string>
+    <string name="main_subtitle">无障碍辅助与 UI 自动化测试工具</string>
+</resources>

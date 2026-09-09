@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 夜间主题（完整夜间配色随 T04 扩展） -->
+    <style name="Theme.Tikeno" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tikeno_primary</item>
+        <item name="colorOnPrimary">@color/tikeno_on_primary</item>
+    </style>
+</resources>

@@ -1,0 +1,6 @@
+# Tikeno — 本机 SDK 路径示例。
+# 使用方法：复制本文件为 local.properties 并按本机实际路径修改 sdk.dir。
+# 注意：Windows 路径中的冒号与反斜杠需要转义。
+sdk.dir=C\:\\Users\\<你的用户名>\\AppData\\Local\\Android\\Sdk
+# NDK 与 CMake 由 Gradle 自动从 SDK 目录发现，要求：
+#   ndk/27.0.12077973  cmake/3.22.1  platforms/android-35  build-tools/34.0.0
