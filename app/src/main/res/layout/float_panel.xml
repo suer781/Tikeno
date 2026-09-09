@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- float_panel.xml — 悬浮展开面板（架构 §2.6 / §2.5 #111）。
+     T03 版本：开始/暂停/停止 + 间隔± + 状态/进度；样式随 T04 精修。 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/float_panel_root"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_float_panel"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tv_float_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/float_status_idle"
+        android:textColor="#FFFFFFFF"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_float_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/float_progress_zero"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_float_play"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="88dp"
+            android:text="@string/float_btn_play"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_float_pause"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minWidth="72dp"
+            android:text="@string/float_btn_pause"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_float_stop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minWidth="72dp"
+            android:text="@string/float_btn_stop"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_float_interval_down"
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="@string/float_btn_interval_down" />
+
+        <TextView
+            android:id="@+id/tv_float_interval"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minWidth="72dp"
+            android:gravity="center"
+            android:text="200ms"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btn_float_interval_up"
+            android:layout_width="44dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:minWidth="0dp"
+            android:text="@string/float_btn_interval_up" />
+    </LinearLayout>
+</LinearLayout>

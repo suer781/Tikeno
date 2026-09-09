@@ -1,0 +1,195 @@
+%% Tikeno 关键时序图 ①启动与档位探测 ②开始→调度执行→注入 ③紧急停止 ④取点器
+%% 来源：docs/02-系统架构设计.md §6.1 ~ §6.4
+%% 说明：本文件含 4 个独立 sequenceDiagram 块，请按需分别复制渲染。
+
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant MA as MainActivity(Kotlin)
+    participant TA as TikenoApp / AppContainer(Java)
+    participant NL as NativeLibrary / NativeEngine
+    participant CP as CapabilityProbe
+    participant AS as ClickerAccessibilityService
+    participant FS as ClickerForegroundService
+    participant NE as TikenoEngine(C++)
+
+    U->>MA: 打开 App
+    MA->>TA: TikenoApp.onCreate()
+    TA->>NL: NativeLibrary.load()
+    NL->>NL: System.loadLibrary("tikeno")
+    NL-->>NE: JNI_OnLoad → RegisterNatives + 缓存 jclass
+    NL-->>TA: OK
+    TA->>TA: AppContainer.init()<br/>建 StateStore / ConfigRepo / InjectionLooper
+    TA->>NE: nativeCreate(cfgBuf) → handle
+    NE-->>TA: handle
+    TA->>NE: nativeAttachSequenceBuffer / OutputRing / StatsBuffer
+    TA->>NE: nativeAttachFds(cmdFd, outFd)
+    TA->>CP: probeAsync()
+    CP->>CP: su -c id（3s 超时）
+    alt Root 成功
+        CP->>CP: 检查 /dev/uinput 可写 + SELinux
+        alt uinput 可用
+            CP-->>TA: L0_UINPUT
+        else uinput 不可用
+            CP->>CP: 枚举 /dev/input/eventX 写测试
+            CP-->>TA: L1_EVDEV 或 L2/L3
+        end
+    else Root 失败
+        CP->>CP: 检查 Shizuku/Sui 授权
+        alt 已授权
+            CP-->>TA: L2_SHELL
+        else 未授权
+            CP-->>TA: L3_ACCESSIBILITY（静默降级，不弹错）
+        end
+    end
+    TA->>NE: nativeSetInjectorTier(handle, tier, path)
+    NE->>NE: InjectorFactory::create(tier)<br/>失败则 L0→L1→L2→L3 逐级降级
+    NE-->>TA: 实际生效档位（可能与请求不同）
+    TA->>StateStore: setTier(实际档位)
+    MA->>AS: 未开启 → 引导跳 ACTION_ACCESSIBILITY_SETTINGS
+    AS-->>MA: onServiceConnected
+    MA->>FS: 启动前台服务（specialUse）
+    FS->>FS: startForeground(id, 常驻通知)
+    FS->>MA: 悬浮窗 attach 完成
+    MA-->>U: 展示档位徽章 + 权限卡片
+
+sequenceDiagram
+    autonumber
+    participant U as 用户（悬浮面板）
+    participant FW as FloatPanelView(Kotlin)
+    participant CTC as ClickTaskController(Java)
+    participant SF as SequenceFlattener
+    participant NE as NativeEngine(JNI)
+    participant ENG as TikenoEngine / Scheduler(C++)
+    participant INJ as IInjector(C++)
+    participant RING as outRing(共享内存)
+    participant IL as InjectionLooper 线程(Java)
+    participant IE as InjectionEngine(Java)
+
+    U->>FW: 点击 ▶ 开始
+    FW->>CTC: start()
+    CTC->>SF: flatten(config, metrics)
+    SF->>SF: 百分比→px；nodeSelector → NodeResolver.resolve()
+    SF->>RING: 写入 seqBuf（TkActionFlat[]，零拷贝）
+    CTC->>NE: nativeLoadSequence(handle, actionCount)
+    NE->>ENG: loadSequence()<br/>解析 flat → 预分配 StepPool / 展开轨迹
+    ENG-->>CTC: TK_OK
+    CTC->>CTC: StateStore.setState(RUNNING)
+    CTC->>NE: nativeStart(handle)
+    NE->>ENG: start() → pthread_create("tikeno.sched")
+    ENG->>ENG: 绑大核；Root 档尝试 SCHED_FIFO(60)
+    ENG->>ENG: nextDeadline = now + period；HighResTimer.armAbsolute()
+
+    loop 每个周期（C++ 调度线程内闭环）
+        ENG->>ENG: epoll_wait(timerFd | cmdEfd | outEfd)
+        alt 剩余 > spinThreshold
+            ENG->>ENG: epoll 阻塞等待（CPU 可休眠）
+        else 剩余 ≤ spinThreshold（默认 2ms）
+            ENG->>ENG: clock_gettime 自旋到精确 deadline
+        end
+        ENG->>ENG: 检查 cmdEfd（STOP/PAUSE/SET_PARAM）
+        ENG->>ENG: player.nextStep(out)（零分配）
+        alt 档位 L0/L1（native 直写）
+            ENG->>INJ: emitDown / emitMove / emitUp / emitSync
+            INJ->>INJ: write(fd, input_event) —— 无 JNI
+        else 档位 L2/L3（桥接）
+            ENG->>INJ: BridgeInjector::emit* → SharedRingWriter::tryPush(step)
+            INJ->>RING: 写入共享 ring（无 JNI）
+            INJ->>IL: write(outEfd, 1) —— eventfd 通知
+        end
+        ENG->>ENG: stats.record(now - nextDeadline)（误差入样本）
+        ENG->>ENG: nextDeadline += periodNs（绝对推进，防漂移）
+        alt 落后 ≥ 1 周期
+            ENG->>ENG: 跳步补拍 + missedTicks++
+        end
+        ENG->>ENG: stats.writeTo(statsBuf)（每 200ms 一次）
+    end
+
+    opt 桥接档（L2/L3）· Java 注入线程并行段
+        IL->>IL: MessageQueue.addOnFileDescriptorEventListener(outFd)
+        IL->>IL: 被 eventfd 唤醒 → Os.read(outFd) 清计数
+        IL->>RING: OutputRing.drain() 批量取 step
+        IL->>IE: dispatchGesture(g, cb, injectHandler) / Shizuku
+        IE-->>IL: onCompleted（投递回 injectHandler，不占主线程）
+    end
+
+    CTC->>CTC: StatsBuffer 直读 statsBuf（无 JNI）
+    CTC->>FW: mainHandler 节流 200ms 更新进度 / P95
+
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant E1 as 悬浮窗 STOP
+    participant E2 as 通知 STOP
+    participant E3 as Quick Settings Tile
+    participant CTC as ClickTaskController(Java)
+    participant NE as NativeEngine(JNI)
+    participant ENG as Scheduler(C++ 线程)
+    participant INJ as IInjector
+    participant IL as InjectionLooper(Java)
+    participant IE as InjectionEngine(Java)
+
+    alt 入口 1：悬浮窗
+        U->>E1: 点击 ⏹
+        E1->>CTC: stop()
+    else 入口 2：通知
+        U->>E2: 点击 停止
+        E2->>CTC: NotificationActionReceiver → stop()
+    else 入口 3：磁贴
+        U->>E3: 点击 Tile
+        E3->>CTC: QuickTileService.onClick → stop()
+    end
+
+    CTC->>CTC: stoppedFlag.set(true)（volatile，Java 侧立即生效）
+    CTC->>CTC: StateStore.setState(STOPPING)
+    CTC->>NE: nativeStop(handle)（目标 ≤5ms）
+    NE->>ENG: CommandQueue.push(CMD_STOP)
+    NE->>ENG: write(cmdEfd, 1)
+    ENG->>ENG: epoll_wait 立即返回（无需等 timerFd 到期）
+    ENG->>ENG: 完成当前原子 stroke 的 UP/SYNC（防触摸卡死）
+    ENG->>ENG: HighResTimer.cancel()；清 ring；写最终 stats
+    ENG->>ENG: state = IDLE
+    ENG-->>CTC: （statsBuf.state 可被 Java 直读确认）
+
+    opt 桥接档（L2/L3）额外步骤
+        CTC->>IL: postCancel()（注入线程 Handler，非主线程）
+        IL->>IL: 设置 cancelled 标记
+        IL->>IE: 不再下发新的 dispatchGesture
+        IE-->>IL: 在途手势 onCompleted 被忽略
+    end
+
+    CTC->>CTC: StateStore.setState(IDLE)
+    CTC->>CTC: 更新通知（停止态）+ 刷新 Tile + 刷新悬浮面板
+    CTC-->>U: UI 反映停止（总耗时预算 ≤100ms）
+
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant ED as ConfigEditorActivity(Kotlin)
+    participant PA as PickerActivity(Kotlin)
+    participant AS as ClickerAccessibilityService(Java)
+    participant WM as WindowManager
+    participant OV as PickerOverlayView(Kotlin)
+    participant NR as NodeResolver(Java)
+
+    U->>ED: 点击「取点」
+    ED->>PA: startActivityForResult(picker)
+    PA->>AS: 自检服务已连接（未连接则引导）
+    AS-->>PA: connected
+    PA->>WM: addView(overlay, TYPE_ACCESSIBILITY_OVERLAY)
+    Note over WM: 无障碍窗口 = 受信任窗口<br/>规避 Android 12 不可信触摸限制
+    WM-->>OV: 遮罩显示（半透明 + 十字准星 + 坐标面板）
+    U->>OV: 拖动准星
+    OV->>OV: 实时更新 X/Y 与百分比
+    opt 用户点「吸附到控件」
+        OV->>AS: setWindowContentEnabled(true)（setServiceInfo 动态开启）
+        OV->>NR: findByText / viewId / className / contentDesc
+        NR-->>OV: 控件矩形 → 中心坐标
+        OV->>OV: 准星吸附 + 记录 nodeSelector
+        OV->>AS: setWindowContentEnabled(false)（用完即关，降权限面）
+    end
+    U->>OV: 点击「确定」
+    OV->>PA: onConfirm(PointModel)
+    PA->>WM: removeViewImmediate(overlay)
+    PA-->>ED: setResult(point)
+    ED->>ED: 写入 ActionModel.points[0]

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 浅色主题（Material Components 基类，架构 §1.1：传统 View + ViewBinding） -->
+    <style name="Theme.Tikeno" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tikeno_primary</item>
+        <item name="colorOnPrimary">@color/tikeno_on_primary</item>
+        <item name="android:colorBackground">@color/tikeno_background</item>
+        <item name="android:statusBarColor">@color/tikeno_primary</item>
+    </style>
+</resources>

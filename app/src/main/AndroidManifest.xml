@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tikeno — AndroidManifest（T03 增量：权限 + 无障碍服务 / 前台服务 / 磁贴 / 接收器）。
+     主 Activity 已由 T01 声明；取点器/编辑器等 Activity 随 T04 增量补齐（架构 §9.4）。 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- —— 权限（按本轮组件最小集声明）—— -->
+    <!-- 全局悬浮窗（特殊权限，须经 Settings 授权页，不可 runtime request） -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- 前台服务 + Android 14 specialUse 子类型 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- 控制通知（API 33+ 运行时申请，T04 引导流程） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 开机广播（仅重建通知渠道，不自动启动任务 —— 合规） -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:name=".TikenoApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Tikeno">
+
+        <!-- 主界面：骨架验证点（标题栏 Tikeno + native 版本串），后续轮次完整实现 -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- —— 无障碍服务（L3 注入通道 + dispatchGesture 宿主）—— -->
+        <service
+            android:name=".service.ClickerAccessibilityService"
+            android:exported="true"
+            android:label="@string/a11y_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- —— 前台服务（Android 14 specialUse：悬浮控制面板宿主）—— -->
+        <service
+            android:name=".service.ClickerForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="floating_control_panel" />
+        </service>
+
+        <!-- —— QS 快捷磁贴（一键启停，API 24+）—— -->
+        <service
+            android:name=".service.QuickTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_launcher_foreground"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- —— 通知按钮广播（显式 PendingIntent，仅本应用可达）—— -->
+        <receiver
+            android:name=".service.NotificationActionReceiver"
+            android:exported="false" />
+
+        <!-- —— 开机广播（系统保护广播；exported=true 为标准写法）—— -->
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

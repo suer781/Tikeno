@@ -1,0 +1,413 @@
+%% Tikeno 核心类图（Java/Kotlin 侧 + C++ 侧）
+%% 来源：docs/02-系统架构设计.md §4.1 / §4.2
+%% 说明：本文件含 2 个 classDiagram 块，请按需分别复制渲染。
+
+classDiagram
+    direction LR
+
+    class TikenoApp {
+        -AppContainer container
+        +onCreate() void
+        +getContainer() AppContainer
+    }
+
+    class AppContainer {
+        -StateStore stateStore
+        -ConfigRepository configRepo
+        -PrefsManager prefs
+        -ClickTaskController taskController
+        -InjectionLooper injectionLooper
+        -InjectionDispatcher dispatcher
+        -CapabilityProbe probe
+        -Handler mainHandler
+        -ExecutorService probeExecutor
+        +init() void
+        +shutdown() void
+        +postMain(Runnable) void
+    }
+
+    class StateStore {
+        -EngineState state
+        -InjectionTier tier
+        -int progress
+        -int total
+        -CopyOnWriteArrayList~Listener~ listeners
+        +getState() EngineState
+        +setState(EngineState) void
+        +setTier(InjectionTier) void
+        +setProgress(int,int) void
+        +addListener(Listener) void
+        +removeListener(Listener) void
+    }
+
+    class ClickTaskController {
+        -NativeEngine native
+        -OutputRing outRing
+        -StatsBuffer statsBuf
+        -InjectionLooper looper
+        +loadConfig(ClickConfig) int
+        +start() int
+        +pause() int
+        +resume() int
+        +stop() int
+        +updateIntervalMs(long) int
+        +setPowerProfile(int) int
+    }
+
+    class NativeEngine {
+        +long handle
+        +nativeCreate(ByteBuffer) long
+        +nativeAttachBuffers(long, ByteBuffer, ByteBuffer) int
+        +nativeAttachFds(long, FileDescriptor, FileDescriptor) int
+        +nativeLoadSequence(long, ByteBuffer, int) int
+        +nativeStart(long) int
+        +nativeStop(long) int
+        +nativePause(long) int
+        +nativeResume(long) int
+        +nativePostCommand(long, int, long, long) int
+        +nativeGetState(long) int
+        +nativeDestroy(long) void
+    }
+
+    class InjectionLooper {
+        -HandlerThread thread
+        -Handler handler
+        -OutputRing ring
+        +start() void
+        +quit() void
+        +onOutFdReadable() void
+    }
+
+    class OutputRing {
+        -ByteBuffer buf
+        -long localTail
+        +drain(StepConsumer) int
+        +remaining() int
+    }
+
+    class StatsBuffer {
+        -ByteBuffer buf
+        +refresh() void
+        +p50Ns() long
+        +p95Ns() long
+        +p99Ns() long
+        +missedTicks() long
+    }
+
+    class InjectionEngine {
+        <<interface>>
+        +tap(int,int,int) int
+        +longPress(int,int,int,int) int
+        +swipe(Path,int,int) int
+        +multiTouch(PathList,int,int) int
+        +waitMs(int) void
+        +globalAction(int) int
+        +tier() InjectionTier
+        +isAvailable() boolean
+    }
+
+    class L3AccessibilityInjector {
+        -ClickerAccessibilityService svc
+        -Handler injectHandler
+        +tap(int,int,int) int
+        +swipe(Path,int,int) int
+    }
+
+    class L2ShellInjector {
+        -boolean shizukuReady
+        +tap(int,int,int) int
+        +isAvailable() boolean
+    }
+
+    class InjectionDispatcher {
+        -InjectionTier current
+        -MapOfTierToEngine impls
+        +current() InjectionEngine
+        +switchTo(InjectionTier) void
+    }
+
+    class ConfigRepository {
+        -List~ClickConfig~ cache
+        -ConfigCodec codec
+        +all() List~ClickConfig~
+        +byId(String) ClickConfig
+        +save(ClickConfig) void
+        +delete(String) void
+        +addListener(Listener) void
+    }
+
+    class ClickConfig {
+        +String id
+        +String name
+        +String bindPackage
+        +ActionSequence sequence
+        +LoopPolicy loopPolicy
+        +int powerProfile
+        +float jitterPct
+        +boolean pauseOnScreenOff
+    }
+
+    class ActionSequence {
+        +List~ActionModel~ actions
+        +LoopPolicy innerLoop
+        +int size() int
+    }
+
+    class ActionModel {
+        +int type
+        +PointModel points
+        +long intervalMs
+        +int durationMs
+        +int repeat
+        +int curveType
+        +int missPolicy
+        +NodeSelector nodeSelector
+    }
+
+    class PointModel {
+        +int x
+        +int y
+        +float percentX
+        +float percentY
+        +int coordMode
+        +int offsetX
+        +int offsetY
+    }
+
+    class LoopPolicy {
+        +int kind
+        +int maxCount
+        +long maxDurationMs
+    }
+
+    class CapabilityProbe {
+        -InjectionTier cached
+        +probe() InjectionTier
+        +probeAsync(Callback) void
+        +invalidate() void
+    }
+
+    class PermissionChecker {
+        +overlayGranted(Context) boolean
+        +accessibilityEnabled(Context) boolean
+        +notificationGranted(Context) boolean
+        +batteryWhitelisted(Context) boolean
+    }
+
+    class ClickerAccessibilityService {
+        -boolean connected
+        -View pickerOverlay
+        +dispatch(GestureDescription, Handler) boolean
+        +globalAction(int) boolean
+        +attachPickerOverlay(View) boolean
+        +setWindowContentEnabled(boolean) void
+    }
+
+    class ClickerForegroundService {
+        +start(Context) void
+        +stop(Context) void
+        +updateNotification(EngineState, int) void
+        -heartbeat() void
+    }
+
+    class QuickTileService {
+        +onClick() void
+        +refreshTile(EngineState) void
+    }
+
+    TikenoApp *-- AppContainer
+    AppContainer *-- StateStore
+    AppContainer *-- ClickTaskController
+    AppContainer *-- InjectionLooper
+    AppContainer *-- InjectionDispatcher
+    AppContainer *-- ConfigRepository
+    AppContainer *-- CapabilityProbe
+    ClickTaskController --> NativeEngine
+    ClickTaskController --> OutputRing
+    ClickTaskController --> StatsBuffer
+    ClickTaskController --> StateStore
+    InjectionLooper --> OutputRing
+    InjectionLooper --> InjectionDispatcher
+    InjectionDispatcher --> InjectionEngine
+    InjectionEngine <|.. L3AccessibilityInjector
+    InjectionEngine <|.. L2ShellInjector
+    L3AccessibilityInjector --> ClickerAccessibilityService
+    ClickerAccessibilityService --> AppContainer
+    ClickerForegroundService --> AppContainer
+    QuickTileService --> ClickTaskController
+    ConfigRepository *-- ClickConfig
+    ClickConfig *-- ActionSequence
+    ActionSequence *-- ActionModel
+    ActionModel *-- PointModel
+    ClickConfig *-- LoopPolicy
+    PermissionChecker ..> AppContainer
+
+classDiagram
+    direction LR
+
+    class TikenoEngine {
+        -atomic_int state
+        -TkEngineConfig config
+        -Scheduler scheduler
+        -SequencePlayer player
+        -StepPool stepPool
+        -Stats stats
+        -IInjector injector
+        -TkThread worker
+        +create(TkEngineConfig) int
+        +attachBuffers(ring, stats) int
+        +attachFds(int, int) int
+        +loadSequence(flat, count) int
+        +start() int
+        +stop() int
+        +pause() int
+        +resume() int
+        +postCommand(int, long, long) int
+        +state() int
+        +runLoop() void
+    }
+
+    class Scheduler {
+        -HighResTimer timer
+        -EpollLoop epoll
+        -CommandQueue cmdq
+        -long nextDeadlineNs
+        -long periodNs
+        -long spinThresholdNs
+        -Stats stats
+        +prepare(long periodNs) void
+        +run(IInjector, SequencePlayer) void
+        +requestStop() void
+        -waitUntil(long absNs) int
+        -tickOnce(IInjector, SequencePlayer) void
+    }
+
+    class HighResTimer {
+        -int backend
+        -int timerFd
+        +armAbsolute(long ns) int
+        +cancel() int
+        +fd() int
+        +backend() int
+    }
+
+    class EpollLoop {
+        -int epFd
+        +addFd(int, uint32_t) int
+        +removeFd(int) int
+        +waitOnce(int timeoutMs) int
+    }
+
+    class CommandQueue {
+        -TkCommand buf
+        -atomic_uint head
+        -atomic_uint tail
+        +tryPush(TkCommand) bool
+        +tryPop(TkCommand) bool
+    }
+
+    class SequencePlayer {
+        -TkActionFlat actions
+        -int count
+        -int cursor
+        -int innerIter
+        -LoopPolicy loop
+        +reset() void
+        +hasNext() bool
+        +nextStep(TkStep) int
+        +progress() void
+    }
+
+    class ActionBuilder {
+        +build(TkActionFlat, TkStep, int) int
+        +buildTrajectory(TkActionFlat, TkStep, int) int
+    }
+
+    class Trajectory {
+        +sampleLinear(TkPointFlat, TkPointFlat, int, TkStep) int
+        +sampleBezier(TkPointFlat, int, int, TkStep) int
+        +sampleEaseInOut(TkPointFlat, int, int, TkStep) int
+        +sampleHuman(TkPointFlat, int, int, TkStep) int
+    }
+
+    class StepPool {
+        -TkStep storage
+        -int capacity
+        +reset() void
+        +ptr() TkStep
+    }
+
+    class Stats {
+        -long samples
+        -atomic_uint idx
+        -atomic_long missed
+        +record(long errNs) void
+        +writeTo(statsBuf) void
+        +missedTicks() long
+    }
+
+    class IInjector {
+        <<interface>>
+        +open() int
+        +close() void
+        +emitDown(int slot, int x, int y) int
+        +emitMove(int slot, int x, int y) int
+        +emitUp(int slot) int
+        +emitSync() int
+        +emitWait(long ns) int
+        +emitGlobal(int action) int
+        +flush() int
+        +tier() int
+    }
+
+    class UinputInjector {
+        -int fd
+        -int maxSlots
+        +setupDevice(int w, int h) int
+    }
+
+    class EvdevInjector {
+        -int fd
+        -char path
+        +probeDevice() int
+    }
+
+    class BridgeInjector {
+        -SharedRingWriter ring
+        -int outFd
+        +push(TkStep) int
+    }
+
+    class SharedRingWriter {
+        -void base
+        -atomic_uint head
+        -atomic_uint tail
+        -int outFd
+        +tryPush(TkStep) bool
+        +notify() int
+    }
+
+    class TkThread {
+        -pthread_t tid
+        -char name
+        +start(fn, arg) int
+        +joinTimed(int ms) int
+    }
+
+    TikenoEngine *-- Scheduler
+    TikenoEngine *-- SequencePlayer
+    TikenoEngine *-- StepPool
+    TikenoEngine *-- Stats
+    TikenoEngine --> IInjector
+    Scheduler *-- HighResTimer
+    Scheduler *-- EpollLoop
+    Scheduler *-- CommandQueue
+    Scheduler --> Stats
+    SequencePlayer --> ActionBuilder
+    ActionBuilder --> Trajectory
+    ActionBuilder --> StepPool
+    IInjector <|.. UinputInjector
+    IInjector <|.. EvdevInjector
+    IInjector <|.. BridgeInjector
+    BridgeInjector --> SharedRingWriter
+    TikenoEngine *-- TkThread

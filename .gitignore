@@ -1,0 +1,22 @@
+# Gradle / Android
+.gradle/
+build/
+local.properties
+.cxx/
+.externalNativeBuild/
+captures/
+*.apk.idsig
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Native
+*.so
+*.o
