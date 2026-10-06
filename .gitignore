@@ -20,3 +20,13 @@ Thumbs.db
 # Native
 *.so
 *.o
+
+# 构建产物（可安装，不入库）
+*.apk
+*.aab
+
+# 本地工作记忆
+.workbuddy/
+
+# Kotlin 增量编译
+.kotlin/
