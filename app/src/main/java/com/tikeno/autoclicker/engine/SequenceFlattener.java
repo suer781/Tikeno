@@ -5,6 +5,7 @@ import java.nio.ByteOrder;
 
 import com.tikeno.autoclicker.model.ActionModel;
 import com.tikeno.autoclicker.model.ActionSequence;
+import com.tikeno.autoclicker.model.LoopPolicy;
 import com.tikeno.autoclicker.model.PointModel;
 
 /**
@@ -42,17 +43,24 @@ public final class SequenceFlattener {
         if (count <= 0 || count > 256 /* kMaxActions */) {
             return -1003;
         }
-        // 容量校验：8B 头 + count×(64 + 20×16) ≤ 256KB
-        final int worst = 8 + count * (64 + 20 * 16);
+        // 容量校验：24B 头 + count×(64 + 20×16) ≤ 256KB
+        final int worst = 24 + count * (64 + 20 * 16);
         if (seqBuf.capacity() < worst) {
             return -1003;
         }
 
         final ByteBuffer b = seqBuf.order(ByteOrder.LITTLE_ENDIAN);
+        // 24B 头部（T04 契约扩展，与 C++ engine.cpp load_sequence 同步）：
+        //   [0]=actionCount [4]=schemaVersion [8]=loopKind [12]=loopMaxCount
+        //   [16]=loopMaxDurationMs；动作数据自偏移 24 起
         b.putInt(0, count);
         b.putInt(4, 1);   // kConfigSchemaVersion（与 C++ constants.h 一致）
+        final LoopPolicy lp = sequence.policy();
+        b.putInt(8, lp.kind);
+        b.putInt(12, lp.maxCount);
+        b.putInt(16, (int) Math.min(Integer.MAX_VALUE, lp.maxDurationNs / 1_000_000L));
 
-        int off = 8;
+        int off = 24;
         for (ActionModel a : sequence.actionsView()) {
             final int pc = a.pointCount();
             b.putInt(off, a.type);                  // +0  type

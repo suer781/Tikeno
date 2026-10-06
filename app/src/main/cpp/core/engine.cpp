@@ -155,6 +155,15 @@ int TikenoEngine::load_sequence(int action_count) {
         TK_LOGE("load_sequence: schema=%d 不支持", schema_version);
         return static_cast<int>(TkError::kErrInvalidArg);
     }
+    // 循环策略（T04 契约扩展，Java/C++ 两侧同步）：seqBuf 头部扩展为 24B ——
+    //   [0]=actionCount [4]=schemaVersion [8]=loopKind [12]=loopMaxCount
+    //   [16]=loopMaxDurationMs；动作数据自偏移 24 起（T02 骨架时为 8）。
+    int32_t loop_kind = 0, loop_max_count = 0, loop_max_ms = 0;
+    if (seq_buf_size_ >= 24) {
+        memcpy(&loop_kind, header + 8, sizeof(int32_t));
+        memcpy(&loop_max_count, header + 12, sizeof(int32_t));
+        memcpy(&loop_max_ms, header + 16, sizeof(int32_t));
+    }
     // Java 传入数量与缓冲头数量二选一为 0 时取另一个（防御双 0）
     int32_t count = (action_count > 0) ? action_count : buf_action_count;
     if (count <= 0 || count > kMaxActions) {
@@ -165,7 +174,7 @@ int TikenoEngine::load_sequence(int action_count) {
     // 解析并展开（控制面：唯一允许分配重置的阶段）
     step_pool_.reset();
     FastRng rng(0x54494B454E4FULL);  // "TIKEN" 种子（抖动用，确定性）
-    size_t cursor = 8;
+    size_t cursor = 24;  // 24B 头部（count/schema/loopKind/maxCount/maxDurationMs）
     int warn = static_cast<int>(TkError::kOk);
     for (int32_t i = 0; i < count; ++i) {
         // 动作头
@@ -210,10 +219,16 @@ int TikenoEngine::load_sequence(int action_count) {
 
     // 循环策略：骨架轮次默认无限循环（kind=0）；策略扁平化字段随 T03
     // SequenceFlattener 扩展 seqBuf 头部传入（偏差已记录）
+    // 循环策略：来自 seqBuf 头部（T04）；非法值钳制为无限循环
     TkLoopPolicy policy;
-    policy.kind = 0;
-    policy.max_count = 0;
-    policy.max_duration_ns = 0;
+    if (loop_kind >= 0 && loop_kind <= 3) {
+        policy.kind = loop_kind;
+    } else {
+        policy.kind = 0;
+    }
+    policy.max_count = (loop_max_count > 0) ? loop_max_count : 0;
+    policy.max_duration_ns = (loop_max_ms > 0)
+        ? static_cast<int64_t>(loop_max_ms) * kNsPerMs : 0;
     player_.load(step_pool_.data(), step_pool_.count(), policy);
 
     state_.store(static_cast<int>(TkEngineState::kPrepared), std::memory_order_relaxed);

@@ -6,6 +6,7 @@ import android.os.Looper;
 
 import java.util.concurrent.ExecutorService;
 
+import com.tikeno.autoclicker.core.ConfigRepository;
 import com.tikeno.autoclicker.core.PrefsManager;
 import com.tikeno.autoclicker.core.StateStore;
 import com.tikeno.autoclicker.engine.ClickTaskController;
@@ -28,6 +29,7 @@ public final class AppContainer {
     private final ExecutorService ioExecutor;
     private final StateStore stateStore;
     private final PrefsManager prefsManager;
+    private final ConfigRepository configRepository;
     private ClickTaskController controller;
     private volatile boolean shutdown;
 
@@ -37,6 +39,7 @@ public final class AppContainer {
         ioExecutor = Threadx.newNamedSingleExecutor("tikeno.io");
         stateStore = new StateStore();
         prefsManager = new PrefsManager(appContext);
+        configRepository = new ConfigRepository(appContext);
     }
 
     public void init() {
@@ -60,6 +63,11 @@ public final class AppContainer {
     /** IO 单线程执行器（配置读写 / CSV 导出；T03 扩展使用） */
     public ExecutorService io() {
         return ioExecutor;
+    }
+
+    /** 配置持久化仓库（IO 必须经 io() 执行） */
+    public ConfigRepository configRepository() {
+        return configRepository;
     }
 
     public StateStore stateStore() {
