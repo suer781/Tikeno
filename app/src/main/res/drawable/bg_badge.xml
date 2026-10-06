@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 档位徽章圆点背景（TierBadgeBinder.badgeTierDot 使用）。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/tier_l3" />
+    <size
+        android:width="12dp"
+        android:height="12dp" />
+</shape>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 底部导航菜单（MainActivity 底部导航/选项菜单）。 -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_stats"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:title="@string/menu_stats" />
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="@string/menu_settings" />
+    <item
+        android:id="@+id/action_foreground"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:title="@string/menu_foreground" />
+</menu>

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 配色（骨架最小集；深/浅全套随 T04 扩展） -->
+    <!-- 配色（T04 全量） -->
+
+    <!-- 主题色 -->
     <color name="tikeno_primary">#1E88E5</color>
     <color name="tikeno_on_primary">#FFFFFF</color>
     <color name="tikeno_background">#FAFAFA</color>
@@ -9,8 +11,18 @@
     <!-- 自适应图标背景 -->
     <color name="ic_launcher_background">#1E88E5</color>
 
-    <!-- 状态色（悬浮球：灰=停止/绿=运行/黄=暂停，T04 使用） -->
+    <!-- 状态色（悬浮球：灰=停止/绿=运行/黄=暂停） -->
     <color name="state_idle">#9E9E9E</color>
     <color name="state_running">#43A047</color>
     <color name="state_paused">#FBC02D</color>
+
+    <!-- 档位徽章色（TierBadgeBinder） -->
+    <color name="tier_l0">#D32F2F</color>
+    <color name="tier_l1">#F57C00</color>
+    <color name="tier_l2">#7B1FA2</color>
+    <color name="tier_l3">#1E88E5</color>
+
+    <!-- 权限卡片状态色（PermissionCardBinder） -->
+    <color name="perm_ok">#2E7D32</color>
+    <color name="perm_missing">#C62828</color>
 </resources>

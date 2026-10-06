@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 配置编辑器（ConfigEditorActivity 宿主）。id 与代码绑定名精确匹配。 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <EditText
+            android:id="@+id/et_config_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/config_default_name"
+            android:textSize="16sp"
+            android:inputType="text" />
+
+        <EditText
+            android:id="@+id/et_interval_ms"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="间隔 (ms)"
+            android:inputType="number"
+            android:text="200" />
+
+        <EditText
+            android:id="@+id/et_jitter_pct"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="抖动 (%)"
+            android:inputType="numberDecimal"
+            android:text="0" />
+
+        <!-- 循环策略（LoopPolicyPanel 操作） -->
+        <RadioGroup
+            android:id="@+id/loop_kind_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical">
+
+            <RadioButton
+                android:id="@+id/loop_infinite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/loop_kind_infinite" />
+
+            <RadioButton
+                android:id="@+id/loop_fixed_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/loop_kind_fixed_count" />
+
+            <RadioButton
+                android:id="@+id/loop_fixed_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/loop_kind_fixed_duration" />
+        </RadioGroup>
+
+        <EditText
+            android:id="@+id/et_loop_count"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/loop_count_label"
+            android:inputType="number"
+            android:text="10"
+            android:visibility="gone" />
+
+        <EditText
+            android:id="@+id/et_loop_duration_sec"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/loop_duration_label"
+            android:inputType="number"
+            android:text="60"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btn_pick_point"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/picker_hint" />
+
+        <Button
+            android:id="@+id/btn_add_action"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="添加动作" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/action_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_save"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/config_saved" />
+
+            <Button
+                android:id="@+id/btn_save_start"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="@string/task_started" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

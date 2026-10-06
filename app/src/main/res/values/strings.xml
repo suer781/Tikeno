@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 应用文案（T03 服务层 + 悬浮窗；完整文案含合规免责声明随 T05 补齐，措辞按 PRD §2.5.4） -->
+    <!-- 应用文案（T04 全量 + T05 合规引导） -->
+
+    <!-- —— 应用 —— -->
     <string name="app_name">Tikeno</string>
     <string name="main_subtitle">无障碍辅助与 UI 自动化测试工具</string>
 
-    <!-- —— 通知（NotificationHelper / 前台服务）—— -->
+    <!-- —— 通知 / 前台服务 —— -->
     <string name="notif_channel_name">控制通知</string>
     <string name="notif_channel_desc">显示点击任务的运行状态与控制按钮</string>
     <string name="notif_title">Tikeno 任务控制</string>
@@ -13,7 +15,7 @@
     <string name="action_pause">暂停</string>
     <string name="action_stop">停止</string>
 
-    <!-- —— QS 磁贴（QuickTileService）—— -->
+    <!-- —— QS 磁贴 —— -->
     <string name="tile_label">Tikeno</string>
     <string name="tile_state_running">运行中</string>
     <string name="tile_state_idle">已停止</string>
@@ -22,7 +24,7 @@
     <string name="a11y_service_label">Tikeno 自动连点</string>
     <string name="a11y_service_desc">用于自动化点击测试：执行您配置的点击/滑动手势。服务不会读取屏幕内容，除您主动开启取点功能外。</string>
 
-    <!-- —— 悬浮窗（FloatWindowManager / FloatPanelView / FloatBallView）—— -->
+    <!-- —— 悬浮窗 —— -->
     <string name="float_ball_desc">Tikeno 悬浮控制球</string>
     <string name="float_status_idle">待命</string>
     <string name="float_status_running">运行中</string>
@@ -35,4 +37,123 @@
     <string name="float_btn_stop">⏹ 停止</string>
     <string name="float_btn_interval_down">−</string>
     <string name="float_btn_interval_up">+</string>
+
+    <!-- —— 配置列表（MainActivity / ConfigListAdapter）—— -->
+    <string name="config_action_summary">共 %1$d 个动作</string>
+    <string name="config_default_name">未命名配置</string>
+    <string name="config_saved">配置已保存</string>
+    <string name="delete_config_title">删除配置</string>
+    <string name="delete_config_msg">确定删除「%1$s」吗？此操作不可撤销。</string>
+    <string name="delete_action_title">删除动作</string>
+    <string name="delete_action_msg">确定删除该动作吗？</string>
+
+    <!-- —— 权限卡片（PermissionCardBinder）—— -->
+    <string name="permission_all_ready">权限已就绪</string>
+    <string name="permission_missing">部分权限未开启</string>
+    <string name="perm_ok">✓ 已开启</string>
+    <string name="perm_missing">✗ 未开启</string>
+
+    <!-- —— 动作类型（ActionListAdapter / ActionEditBottomSheet）—— -->
+    <string name="action_type_tap">点击</string>
+    <string name="action_type_long_press">长按</string>
+    <string name="action_type_swipe">滑动</string>
+    <string name="action_type_multi_touch">多指</string>
+    <string name="action_type_wait">等待</string>
+    <string name="action_type_global">全局动作</string>
+    <string name="action_type_condition">条件</string>
+
+    <string name="action_detail_wait">等待 %1$d ms</string>
+    <string name="action_detail_global">执行 %1$s</string>
+    <string name="action_detail_point">坐标 (%1$d, %2$d)</string>
+    <string name="action_detail_no_point">未取点</string>
+
+    <!-- —— 循环策略（LoopPolicyPanel）—— -->
+    <string name="loop_infinite">无限循环</string>
+    <string name="loop_fixed_count">循环 %1$d 次</string>
+    <string name="loop_fixed_duration">循环 %1$d 秒</string>
+    <string name="loop_kind_infinite">无限</string>
+    <string name="loop_kind_fixed_count">固定次数</string>
+    <string name="loop_kind_fixed_duration">固定时长</string>
+    <string name="loop_count_label">循环次数</string>
+    <string name="loop_duration_label">时长（秒）</string>
+
+    <!-- —— 全局动作 —— -->
+    <string name="global_back">返回</string>
+    <string name="global_home">主页</string>
+    <string name="global_recents">最近任务</string>
+    <string name="global_notifications">通知栏</string>
+
+    <!-- —— 通用对话框（ConfirmDialogs）—— -->
+    <string name="dialog_ok">确定</string>
+    <string name="dialog_cancel">取消</string>
+
+    <!-- —— 编辑器（ConfigEditorActivity）—— -->
+    <string name="err_empty_actions">请至少添加一个动作</string>
+    <string name="point_picked">已取点 (%1$d, %2$d)</string>
+    <string name="task_started">任务已启动</string>
+
+    <!-- —— 档位徽章（TierBadgeBinder）—— -->
+    <string name="tier_probing">正在探测…</string>
+
+    <!-- —— 底部导航 —— -->
+    <string name="menu_stats">统计</string>
+    <string name="menu_settings">设置</string>
+    <string name="menu_foreground">前台服务</string>
+    <string name="fgs_started">前台服务已启动</string>
+
+    <!-- —— 统计页（StatsActivity / JitterChartView）—— -->
+    <string name="stats_title">执行统计</string>
+    <string name="stats_empty">暂无统计数据</string>
+    <string name="stats_total_exec">总执行步数</string>
+    <string name="stats_missed">漏拍步数</string>
+    <string name="stats_p50">P50 抖动</string>
+    <string name="stats_p95">P95 抖动</string>
+    <string name="stats_p99">P99 抖动</string>
+    <string name="stats_sample_count">采样数</string>
+    <string name="stats_mean">平均抖动</string>
+    <string name="stats_max">最大抖动</string>
+    <string name="stats_refresh">刷新</string>
+
+    <!-- —— 设置页（SettingsActivity）—— -->
+    <string name="settings_title">设置</string>
+    <string name="settings_power_profile">注入功耗档位</string>
+    <string name="settings_power_balanced">均衡（默认）</string>
+    <string name="settings_power_performance">性能</string>
+    <string name="settings_power_saver">省电</string>
+    <string name="settings_pause_on_screen_off">熄屏自动暂停</string>
+    <string name="settings_compliance">合规声明</string>
+    <string name="settings_show_compliance">查看合规声明</string>
+    <string name="settings_version">版本</string>
+
+    <!-- —— 取点器（PickerActivity）—— -->
+    <string name="picker_hint">点击屏幕任意位置取点</string>
+    <string name="picker_cancel">取消取点</string>
+
+    <!-- —— 引导页（GuideActivity）—— -->
+    <string name="guide_title">欢迎使用 Tikeno</string>
+    <string name="guide_step_overlay">悬浮窗权限</string>
+    <string name="guide_step_overlay_desc">用于显示悬浮控制球，方便随时开始/暂停任务。</string>
+    <string name="guide_step_a11y">无障碍服务</string>
+    <string name="guide_step_a11y_desc">用于执行您配置的自动点击/滑动手势。服务不读取屏幕内容。</string>
+    <string name="guide_step_notification">通知权限</string>
+    <string name="guide_step_notification_desc">用于显示任务运行状态与控制按钮。</string>
+    <string name="guide_next">下一步</string>
+    <string name="guide_done">开始使用</string>
+    <string name="guide_skip">跳过</string>
+
+    <!-- —— 合规声明（ComplianceDialog）—— -->
+    <string name="compliance_title">合规声明</string>
+    <string name="compliance_message">本应用通过 Android 无障碍服务（AccessibilityService），在您主动配置并触发后，代替您执行重复的点击/滑动操作。\n\n本应用：\n· 不采集、不记录、不上传屏幕内容或任何个人数据；\n· 所有配置仅保存在设备本地；\n· 无障碍服务仅在您启动自动化任务时执行手势注入。\n\n严禁将本应用用于：游戏作弊、刷量/薅羊毛、抢单、绕过验证码，或任何违反第三方服务条款与法律法规的场景。因违规使用产生的后果由使用者自行承担。\n\n本工具为通用自动化辅助工具，与任何特定应用无关联。</string>
+    <string name="compliance_agree">我已阅读并同意上述声明</string>
+    <string name="compliance_accept">同意并继续</string>
+    <string name="compliance_decline">不同意</string>
+
+    <!-- —— 基准测试（BenchmarkActivity）—— -->
+    <string name="benchmark_title">性能基准</string>
+    <string name="benchmark_start">开始测试</string>
+    <string name="benchmark_running">测试中…</string>
+    <string name="benchmark_done">测试完成</string>
+    <string name="benchmark_freq">频率</string>
+    <string name="benchmark_tier">档位</string>
+    <string name="benchmark_empty">点击「开始测试」运行基准</string>
 </resources>

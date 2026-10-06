@@ -1,35 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 主界面骨架布局（T01 验收；完整布局随 T04 落地） -->
+<!-- 主界面完整布局（T04）：权限卡片 → 档位徽章 → 配置列表 → FAB → 底部导航。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp">
+    android:background="@color/tikeno_background">
 
     <TextView
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/app_name"
-        android:textSize="28sp"
-        android:textStyle="bold" />
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/tikeno_on_background"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp" />
+
+    <!-- 权限卡片（include view_permission_card，容器 id=permissionCard） -->
+    <include
+        android:id="@+id/permissionCard"
+        layout="@layout/view_permission_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="16dp" />
+
+    <!-- 档位徽章容器（id=tierBadge） -->
+    <include
+        android:id="@+id/tierBadge"
+        layout="@layout/view_tier_badge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="16dp" />
 
     <TextView
         android:id="@+id/tv_subtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:text="@string/main_subtitle"
-        android:textSize="14sp" />
+        android:textSize="13sp"
+        android:paddingStart="16dp"
+        android:paddingTop="4dp" />
+
+    <!-- 配置列表 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/configList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="8dp"
+        android:clipToPadding="false"
+        android:scrollbars="vertical" />
+
+    <!-- 空态 -->
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="暂无配置，点击右下角 + 新建"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <!-- 添加配置 FAB -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|bottom"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/config_default_name"
+        app:srcCompat="@android:drawable/ic_input_add"
+        app:backgroundTint="@color/tikeno_primary"
+        app:tint="@color/tikeno_on_primary" />
 
     <TextView
         android:id="@+id/tv_build_info"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_gravity="center_horizontal"
         android:fontFamily="monospace"
-        android:textSize="12sp"
-        android:textIsSelectable="true" />
+        android:textSize="11sp"
+        android:paddingBottom="8dp" />
 
 </LinearLayout>

@@ -32,6 +32,37 @@
             </intent-filter>
         </activity>
 
+        <!-- 配置编辑器（T04） -->
+        <activity
+            android:name=".ui.editor.ConfigEditorActivity"
+            android:exported="false" />
+
+        <!-- 取点器（T04，透明主题） -->
+        <activity
+            android:name=".ui.picker.PickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Tikeno" />
+
+        <!-- 统计页（T04） -->
+        <activity
+            android:name=".ui.stats.StatsActivity"
+            android:exported="false" />
+
+        <!-- 设置页（T04） -->
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false" />
+
+        <!-- 引导页（T05） -->
+        <activity
+            android:name=".ui.guide.GuideActivity"
+            android:exported="false" />
+
+        <!-- 基准测试（T05） -->
+        <activity
+            android:name=".ui.benchmark.BenchmarkActivity"
+            android:exported="false" />
+
         <!-- —— 无障碍服务（L3 注入通道 + dispatchGesture 宿主）—— -->
         <service
             android:name=".service.ClickerAccessibilityService"
