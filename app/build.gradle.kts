@@ -67,6 +67,11 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        // 未 mock 的 Android 框架方法返回默认值（org.json 由 testImplementation 真实库替换）
+        unitTests.isReturnDefaultValues = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -92,6 +97,8 @@ dependencies {
     implementation("dev.rikka.shizuku:provider:13.1.5")
 
     testImplementation("junit:junit:4.13.2")
+    // 真实 org.json（单元测试替换 AGP 桩实现，ConfigCodec 使用其标准 API）
+    testImplementation("org.json:json:20240303")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }
